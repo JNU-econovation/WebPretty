@@ -3,11 +3,8 @@ var db = require('../dbconnection');
 var path = require('path');
 var fs = require('fs');
 var multer = require('multer');
-
 var cors = require('cors');
-
 var router = express.Router();
-
 //목록
 router.get('/', function(req, res) { //localhost:3000/board 일 때
     db.query('select postId, postTitle, hit, genre, DATE_FORMAT(createAt, "%Y %c/%e %r") as createAt, userNickname from post, user where userNum = No', function(err, rows) {
@@ -18,7 +15,6 @@ router.get('/', function(req, res) { //localhost:3000/board 일 때
         res.render('board', {rows: rows, isLogined: req.session.logined, nickname: req.session.name});
     })
 });
-
 //읽기
 router.get('/detail/:postId', function(req, res, next) { //localhost:3000/board/detail/:postid
     var postId = req.params.postId;
@@ -55,8 +51,8 @@ router.get('/detail/:postId', function(req, res, next) { //localhost:3000/board/
                 }
             });
         })
-        });
-    });
+     });
+ });
 
 //댓글 쓰기
 router.post('/:postId/process/comment', function(req, res) {
@@ -68,38 +64,14 @@ router.post('/:postId/process/comment', function(req, res) {
     db.query('insert into comment (postId, contents, userNum, createAt) values (?, ?, ?, DATE_ADD(NOW(), INTERVAL 9 HOUR))' , [postId, content, writer], function (err, comment) {
         if (err) throw(err);
         res.redirect('/board/detail/' + postId);
-    })
-})
-
-    // db.query('select * from comment where postId = ?', [postId], function(err, rows) {
-    //     if (err) throw (err);
-    //     console.log('rows :' + rows);
-    //     res.render
-    // })
-    
+        })
+    })   
 });
 
 //쓰기
 router.get('/write', function(req, res, next) {
-        res.render('write', {isLogined: req.session.logined, nickname: req.session.name});
-    
+        res.render('write', {isLogined: req.session.logined, nickname: req.session.name});  
 })
-
-//쓰기
-// router.get('/write', function(req, res, next) {
-//     res.render('write');
-// });
-
-// var storage = multer.diskStorage({
-//     destination: function(req, res, callback) {
-//         callback(null, 'uploads');
-//     },
-//     filename: function(req, file, callback) {
-//         var extention = path.extname(file.originalname);
-//         var basename = path.basename(file.originalname, extention);
-//         callback(null, basename + Date.now() + extention);
-//     }
-// });
 
 var storage = multer.diskStorage({
     destination: function(req, file, callback) {
@@ -115,7 +87,6 @@ var upload = multer({
     storage: storage
 });
 
-
 //데이터베이스에 글 저장
 router.post('/write', upload.single('file'), function(req, res, next) {
     var body = req.body;
@@ -125,7 +96,6 @@ router.post('/write', upload.single('file'), function(req, res, next) {
     var genre = req.body.genre.join(',');
     var userfile = req.file;
     console.log("file: " + req.file);
-    //var filename = file.filename();
 
     db.beginTransaction(function(err) {
         db.query('insert into post(postTitle, postContents, genre, file, userNum, createAt) values(?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 9 HOUR))', [title, content, genre, upload.filename, writer], function(err) {
@@ -140,9 +110,8 @@ router.post('/write', upload.single('file'), function(req, res, next) {
                     console.log(err);
                     db.rollback(function(err) {
                     console.error("rollback error2");
-                });
+                    });
                 }
-
                 else {
                     db.commit(function (err) {
                         if(err) throw(err);
@@ -155,13 +124,9 @@ router.post('/write', upload.single('file'), function(req, res, next) {
             });
         });
     });
-
-console.log(genre);
-
 });
 
 //수정
-
 router.get('/edit/:postId', function(req, res, next) {
     var postId = req.params.postId;
 
@@ -171,7 +136,6 @@ router.get('/edit/:postId', function(req, res, next) {
         }
         res.render('edit', {postId: postId, rows: rows});
     })
-    
 });
 
 router.post('/edit/:postId', function(req, res, next) {
@@ -193,8 +157,7 @@ router.post('/edit/:postId', function(req, res, next) {
 //삭제
 router.get('/delete/:postId', function(req, res, next) {
     var postId = req.params.postId;
-
-
+    
     db.beginTransaction(function(err) {
         db.query('delete from post where postId = ?', [postId], function(err) {
             if (err) {
@@ -219,66 +182,4 @@ router.get('/delete/:postId', function(req, res, next) {
         })
     })
 })
-
-/*
-    //페이징
-    router.get('/', function(req, res) {
-    var page_size = 10;
-    var page_list_size = 10;
-    var no = "";
-    var totalPageCount = 0;
-
-    db.query('SELECT count(*) as cnt from post', function(err2, rows) {
-        if(err2) {
-            console.log(err2);
-            return
-        }
-        totalPageCount = data[0].cnt;
-        var curPage = req.params.cur;
-
-        console.log("현재 페이지 : " + curPage, "전체 페이지 : " + totalPageCount);
-
-        if (totalPageCount < 0) {
-            totalPageCount = 0;
-        }
-        
-        if (curPage < 0) {
-            no = 0
-        }
-        else {
-            no = (curPage -1) * 10;
-        }
-
-        console.log('[0] curPage : ' + curPage + ' | [1] page_list_size :' + page_list_size + '  | [2] page_size : ' + page_size + ' | [3] totalPage : ' + totalPage);
-
-        var result2 = {
-            "curPage": curPage,
-            "page_list_size" : page_list_size,
-            "page_size" : page_size,
-            "totalPage" : totalPage,
-            "totalSet" : totalSet,
-            "curSet" : curSet,
-            "startPage" : startPage,
-            "endPage" : endPage
-        };
-
-        fs.readFile('board.html', 'utf-8', function (err, data) {
-            if (err) {console.log("ejs 오류" + err);
-            return
-            }  
-            console.log("몇 번부터 몇 번?" + no)
-        
-            db.query('select * from post order by postId desc limit 0,3', [no, page_size], function (err, result) {
-                if (err) {
-                    console.log("페이징 에러" + err);
-                    return}
-                res.send(ejs.render(data, {
-                    data: result,
-                    pasing: result2
-                }));
-            });
-        });    
-   })
-});*/
-
 module.exports = router;
