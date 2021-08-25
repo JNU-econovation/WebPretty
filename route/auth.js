@@ -1,25 +1,14 @@
 var express = require('express');
 var db = require('../dbconnection');
 var fs = require('fs');
-
 var router = express.Router();
-
-
-// var bcrypt = require('bcrypt');
-
 router.get('/', function (req, res) { //localhost:3000
     res.render('MAIN', {isLogined: req.session.logined, nickname: req.session.name});
 });
-
-
 //회원가입
 router.get('/join', function(req, res) {
-    
-
-    res.writeHead(200, {"Content-Type":"text/html"});
-
+     res.writeHead(200, {"Content-Type":"text/html"});
     fs.readFile("./views/SIGN_UP.html", (err, data) => {
-
         if (err) throw (err);
         res.end(data, 'utf-8');
     });
@@ -80,13 +69,11 @@ router.post('/login', function(req, res) {
 router.get('/logout', function(req, res, next) {
     if (req.session) {
         console.log('로그아웃');
-        req.session.destroy(function(err) {
-            
+        req.session.destroy(function(err) {            
             if (err) {
                 console.log('세션 삭제시 에러');
                 return;
             }
-            
             console.log('세션 삭제 성공');
             res.redirect('/');
         })
@@ -96,5 +83,4 @@ router.get('/logout', function(req, res, next) {
         res.redirect('/login');
     }
 })
-
 module.exports = router;
